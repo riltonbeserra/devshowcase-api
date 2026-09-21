@@ -1,32 +1,50 @@
 import express from 'express';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerDocument } from './config/swagger.js';
 import { sequelize } from './models/index.js';
 import apiRoutes from './routes/apiRoutes.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Middlewares
+// Middlewares essenciais
 app.use(cors());
 app.use(express.json());
 
-// Rotas da API sob o prefixo /api
-app.use('/api', apiRoutes);
+// 1. Rota de documentação Swagger UI (DEVE VIR ANTES DO 404)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Rota de boas-vindas / teste rápido
+// 2. Rota de boas-vindas / status
 app.get('/', (req, res) => {
   res.json({ message: 'DevShowcase API rodando com sucesso!' });
 });
 
-// Sincronização com o Banco de Dados e Inicialização do Servidor
+// 3. Rotas principais da API (/api)
+app.use('/api', apiRoutes);
+
+// 4. Middleware para rotas não encontradas (404)
+// Tudo o que não for /api-docs, /, ou /api/... cairá aqui
+app.use((req, res) => {
+  res.status(404).json({
+    status: 'fail',
+    error: `Rota ${req.originalUrl} não encontrada no servidor.`
+  });
+});
+
+// 5. Middleware Global de Tratamento de Erros (sempre o último)
+app.use(errorHandler);
+
+// Sincronização e inicialização do servidor
 async function startServer() {
   try {
-    // Sincroniza os modelos com o banco SQLite (cria tabelas e associações)
-    await sequelize.sync();
-    console.log('Banco de dados SQLite sincronizado com sucesso.');
+    await sequelize.sync({ alter: true });
+    console.log('Banco de dados sincronizado com sucesso.');
 
     app.listen(PORT, () => {
       console.log(`Servidor rodando em: http://localhost:${PORT}`);
+      console.log(`Swagger UI disponível em: http://localhost:${PORT}/api-docs`);
     });
   } catch (error) {
     console.error('Erro ao conectar ou sincronizar o banco de dados:', error);

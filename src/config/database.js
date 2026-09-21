@@ -1,8 +1,22 @@
 import { Sequelize } from 'sequelize';
 
-// Configuração do SQLite: cria o arquivo local database.sqlite
-export const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: './database.sqlite',
-  logging: false // Deixa o terminal limpo sem imprimir todos os comandos SQL
-});
+const isProduction = !!process.env.DATABASE_URL;
+
+export const sequelize = isProduction
+  ? new Sequelize(process.env.DATABASE_URL, {
+      dialect: 'postgres',
+      dialectOptions: {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false
+        }
+      },
+      logging: false
+    })
+  : new Sequelize({
+      dialect: 'sqlite',
+      storage: './database.sqlite',
+      logging: false
+    });
+
+export default sequelize;

@@ -23,5 +23,15 @@ export const Project = sequelize.define('Project', {
       isUrl: { msg: 'O campo "repoUrl" deve ser uma URL válida.' },
       notEmpty: { msg: 'O campo "repoUrl" não pode ser vazio.' }
     }
+  },
+  upvotes: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false
+  },
+  averageRating: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0,
+    allowNull: false
   }
 });
