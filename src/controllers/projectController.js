@@ -107,41 +107,33 @@ export const addFeedback = async (req, res, next) => {
     const { id } = req.params;
     const { comment, rating } = req.body;
 
-    // 1. Procura se o projeto existe
+    // 1. Verifica se o projeto existe
     const project = await Project.findByPk(id);
     if (!project) {
       return res.status(404).json({ error: 'Projeto não encontrado.' });
     }
 
-    // 2. Validação simples de entrada
+    // 2. Validação simples de preenchimento
     if (rating === undefined || rating === null) {
       return res.status(400).json({ error: 'O campo "rating" é obrigatório.' });
     }
 
-    // 3. Cria o feedback diretamente pelo modelo Feedback
-    // Verifique se a sua chave estrangeira é projectId ou ProjectId; 
-    // passando ambas garante compatibilidade imediata com o seu schema
+    // 3. Cria o feedback usando a coluna exata do banco: projectId
     await Feedback.create({
       comment,
       rating,
-      projectId: id,
-      ProjectId: id
+      projectId: id
     });
 
-    // 4. Procura todos os feedbacks deste projeto para calcular a média
+    // 4. Busca todos os feedbacks do projeto pelo projectId para calcular a média
     const feedbacks = await Feedback.findAll({
-      where: {
-        [Op.or]: [
-          { projectId: id },
-          { ProjectId: id }
-        ]
-      }
+      where: { projectId: id }
     });
 
     const sumRatings = feedbacks.reduce((acc, curr) => acc + curr.rating, 0);
     const average = feedbacks.length > 0 ? sumRatings / feedbacks.length : 0;
 
-    // 5. Atualiza a média no projeto
+    // 5. Atualiza a média no projeto com 1 casa decimal
     project.averageRating = parseFloat(average.toFixed(1));
     await project.save();
 
@@ -151,7 +143,6 @@ export const addFeedback = async (req, res, next) => {
       totalFeedbacks: feedbacks.length
     });
   } catch (error) {
-    // Encaminha para o middleware global de erros se for erro de validação do Sequelize
-    return next(error);
+    next(error);
   }
 };
